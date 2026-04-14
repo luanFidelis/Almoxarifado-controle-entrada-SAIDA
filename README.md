@@ -99,6 +99,9 @@ http://localhost:8080
 Luan Gustavo Fidelis
 🔗 LinkedIn: https://linkedin.com/in/luan-fidelis-09442b284
 
-⭐ Observação
+# ⭐ Observação
 
-Este projeto foi desenvolvido com foco em aprendizado e evolução na área de desenvolvimento back-end, aplicando conceitos reais de mercado.
+Este sistema foi desenvolvido com objetivo de aplicação real em um almoxarifado, sendo utilizado para controle de materiais e processos internos. O projeto segue em constante evolução, buscando atender demandas reais e aplicar boas práticas de desenvolvimento utilizadas no mercado.
+
+
+.
