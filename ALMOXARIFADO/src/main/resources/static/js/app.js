@@ -262,7 +262,7 @@ async function salvarEdicao() {
 
     const updateDto = {
         id: id,
-        colaborattorName: nomeColaborador,
+        colaboratorName: nomeColaborador,
         state: novoStatus
     };
 
