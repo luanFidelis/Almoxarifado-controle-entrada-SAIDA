@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner HHTEC</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+        :root { --primary: #8b5cf6; --dark: #0f172a; --gray: #64748b; --light: #f8fafc; --border: #e2e8f0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--dark); margin: 0; padding: 0; color: white; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        
+        .scanner-container { background: white; color: var(--dark); width: 100%; max-width: 450px; border-radius: 24px; overflow: hidden; position: relative; display: flex; flex-direction: column; min-height: 90vh; }
+        
+        .header { background: var(--primary); color: white; padding: 25px 20px; text-align: center; position: relative; z-index: 10; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .header h1 { margin: 0; font-size: 1.5rem; font-weight: 800; }
+        .btn-close { position: absolute; top: 25px; left: 20px; color: white; font-size: 1.5rem; text-decoration: none; cursor: pointer;}
+        
+        #reader { width: 100% !important; border: none !important; padding: 0 !important; margin: 0 !important; background: #000; overflow: hidden; display: block; }
+        #reader * { border: none !important; } 
+        #reader video { width: 100% !important; max-height: 55vh; object-fit: cover !important; display: block !important; border-radius: 0 0 20px 20px; }
+        
+        .scanner-placeholder { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 20px; text-align: center; color: var(--gray); background: white; }
+        .scanner-placeholder i { font-size: 4rem; color: #cbd5e1; margin-bottom: 15px; }
+        
+        .prod-card { background: var(--light); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin: 20px; display: flex; align-items: center; gap: 15px; }
+        .prod-icon { width: 50px; height: 50px; background: #e0e7ff; color: #4f46e5; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        
+        .msg-box { margin: 20px; padding: 15px; border-radius: 12px; text-align: center; font-weight: 700; font-size: 0.95rem; }
+        .msg-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .msg-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+        form { padding: 0 20px 20px 20px; }
+        .form-group { margin-bottom: 20px; text-align: center; }
+        .form-group label { display: block; font-weight: 700; color: var(--gray); margin-bottom: 10px; text-transform: uppercase; font-size: 0.85rem; }
+        .form-control { width: 100%; box-sizing: border-box; padding: 15px; border: 2px solid var(--border); border-radius: 12px; font-size: 1.1rem; text-align: center; font-family: inherit; outline: none; transition: 0.3s; }
+        .form-control:focus { border-color: var(--primary); }
+
+        .btn-submit { background: #16a34a; color: white; width: 100%; padding: 18px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 800; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3); }
+        .btn-submit:hover { background: #15803d; transform: translateY(-2px); }
+
+        .manual-input { display: flex; margin: 20px; gap: 10px; }
+        .manual-input input { flex: 1; padding: 12px; border: 1px solid var(--border); border-radius: 8px; text-align: center; font-family: inherit; outline: none; font-size: 1rem; }
+        .manual-input button { background: var(--dark); color: white; border: none; padding: 0 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        
+        /* Controle de visibilidade das telas virtuais */
+        .ui-section { display: none; }
+        .ui-section.active { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="scanner-container">
+    
+    <div id="ui-scanner" class="ui-section active">
+        <div class="header">
+            <a onclick="goHome()" class="btn-close"><i class="fa fa-times"></i></a>
+            <h1>Escanear Etiqueta</h1>
+        </div>
+
+        <div id="reader"></div>
+        
+        <div class="scanner-placeholder" id="load-msg">
+            <i class="fa fa-camera"></i>
+            <h3>Aponte a câmera para o QR Code.</h3>
+            <p style="font-size:0.85rem;">Certifique-se de dar permissão de câmera no seu navegador.</p>
+        </div>
+
+        <div id="manual-section" style="text-align: center; margin: 20px; font-weight: bold; color: var(--gray);">
+            OU DIGITE O CÓDIGO
+            <div class="manual-input" style="padding: 10px 0 0 0;">
+                <input type="number" id="input-manual" placeholder="Ex: 45" required>
+                <button type="button" onclick="buscarPorCodigo()">BUSCAR</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ui-product" class="ui-section">
+        <div class="header">
+            <h1>Retirar Material</h1>
+        </div>
+
+        <div class="prod-card">
+            <div class="prod-icon"><i class="fa fa-arrow-up"></i></div>
+            <div>
+                <h3 id="prod-nome" style="margin:0; font-size:1.1rem; color:var(--dark);">Nome do Produto</h3>
+                <span style="font-size:0.85rem; color:var(--gray); font-weight:700;">Estoque Atual: <span id="prod-estoque">0</span> <span id="prod-unidade">UN</span></span>
+            </div>
+        </div>
+
+        <form id="form-retirada" onsubmit="confirmarRetirada(event)">
+            <input type="hidden" id="prod-id">
+
+            <div class="form-group">
+                <label>Quantidade a Retirar</label>
+                <input type="number" id="input-quantidade" class="form-control" min="1" required placeholder="Ex: 5" style="font-size: 1.5rem; font-weight:800; text-align:center;">
+            </div>
+
+            <button type="submit" class="btn-submit"><i class="fa fa-check-circle"></i> Confirmar Retirada</button>
+            <a href="#" onclick="voltarParaScanner()" style="display:block; text-align:center; color:var(--gray); font-weight:bold; text-decoration:none; margin-top:20px;">Cancelar</a>
+        </form>
+    </div>
+
+    <div id="ui-message" class="ui-section">
+        <div class="header">
+            <a onclick="goHome()" class="btn-close"><i class="fa fa-times"></i></a>
+            <h1>Resultado</h1>
+        </div>
+        
+        <div id="msg-box" class="msg-box msg-success">
+            </div>
+        
+        <div style="padding: 20px; text-align:center;">
+            <a href="#" onclick="voltarParaScanner()" style="background:var(--primary); color:white; padding:15px 30px; text-decoration:none; border-radius:12px; font-weight:bold; display:inline-block;"><i class="fa fa-qrcode"></i> Ler Outro Código</a>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- CONFIGURAÇÕES DA SUA API SPRING BOOT ---
+    const API_BASE_URL = 'http://localhost:8080/v1/Warehouse'; 
+    
+    // Variáveis Globais
+    let html5QrCode;
+    const scannerConfig = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+
+    // Inicializa a câmera assim que a página carregar
+    document.addEventListener("DOMContentLoaded", iniciarCamera);
+
+    // --- NAVEGAÇÃO DE TELAS ---
+    function mostrarTela(telaId) {
+        document.querySelectorAll('.ui-section').forEach(el => el.classList.remove('active'));
+        document.getElementById(telaId).classList.add('active');
+    }
+
+    function goHome() {
+        // Redireciona para o index principal (adapte o link conforme seu front)
+        window.location.href = 'index.html'; 
+    }
+
+    function voltarParaScanner() {
+        document.getElementById('input-manual').value = '';
+        mostrarTela('ui-scanner');
+        iniciarCamera();
+    }
+
+    // --- LÓGICA DO SCANNER ---
+    function iniciarCamera() {
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("reader");
+        }
+        
+        // Evita erro ao tentar iniciar se já estiver rodando
+        if(html5QrCode.isScanning) return; 
+
+        html5QrCode.start({ facingMode: "environment" }, scannerConfig, (decodedText) => {
+            pararCamera();
+            consultarProdutoAPI(decodedText);
+        })
+        .then(() => {
+            document.getElementById('load-msg').style.display = 'none';
+        })
+        .catch((err) => {
+            console.log("Erro na câmera: ", err);
+            document.getElementById('load-msg').innerHTML = "<i class='fa fa-exclamation-triangle' style='color:#ef4444;'></i><br><h3 style='margin:10px 0;'>Erro na Câmera</h3><p style='font-size:0.85rem;'>Use o campo abaixo para digitar o código manualmente.</p>";
+        });
+    }
+
+    function pararCamera() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().catch(err => console.error("Erro ao parar câmera", err));
+        }
+    }
+
+    function buscarPorCodigo() {
+        const codigo = document.getElementById('input-manual').value;
+        if (codigo) {
+            pararCamera();
+            consultarProdutoAPI(codigo);
+        } else {
+            exibirMensagem("error", "Digite um código válido.");
+        }
+    }
+
+    // --- INTEGRAÇÃO COM SPRING BOOT ---
+
+    // 1. Consulta o produto pelo ID (QR Code)
+    async function consultarProdutoAPI(idProduto) {
+        try {
+            // Adapte o endpoint GET conforme o seu Controller no Spring Boot
+            const response = await fetch(`${API_BASE_URL}/produto/${idProduto}`);
+            
+            if (response.ok) {
+                const produto = await response.json();
+                preencherTelaProduto(produto);
+                mostrarTela('ui-product');
+            } else {
+                exibirMensagem("error", "Produto não encontrado ou indisponível.");
+            }
+        } catch (error) {
+            console.error(error);
+            exibirMensagem("error", "Erro de conexão com o servidor.");
+        }
+    }
+
+    // Preenche o DOM com os dados retornados do Spring Boot
+    function preencherTelaProduto(produto) {
+        document.getElementById('prod-id').value = produto.id;
+        document.getElementById('prod-nome').innerText = produto.name || produto.nome; 
+        document.getElementById('prod-estoque').innerText = produto.quantidade_estoque || produto.estoque; 
+        document.getElementById('prod-unidade').innerText = produto.unidade || 'UN';
+        
+        const inputQtd = document.getElementById('input-quantidade');
+        inputQtd.value = '';
+        inputQtd.max = produto.quantidade_estoque || produto.estoque;
+    }
+
+    // 2. Envia a requisição de saída (POST)
+    async function confirmarRetirada(event) {
+        event.preventDefault(); // Impede o recarregamento da página
+
+        const idProduto = document.getElementById('prod-id').value;
+        const qtdRetirar = document.getElementById('input-quantidade').value;
+
+        // Monta o objeto DTO que seu Spring Boot está esperando
+        const payload = {
+            produto_id: parseInt(idProduto),
+            quantidade: parseInt(qtdRetirar),
+            tipo: 'SAIDA'
+            // O usuário/filial idealmente o Spring Boot captura via Token JWT ou Sessão no backend
+        };
+
+        try {
+            // Adapte o endpoint POST conforme seu Controller
+            const response = await fetch(`${API_BASE_URL}/movimentacao`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                exibirMensagem("success", `Retirada de ${qtdRetirar} unidade(s) registrada com sucesso!`);
+            } else {
+                // Se o back-end retornar erro (ex: 400 Bad Request por estoque insuficiente)
+                const errorData = await response.text(); 
+                exibirMensagem("error", errorData || "Erro ao registrar a retirada.");
+            }
+        } catch (error) {
+            console.error(error);
+            exibirMensagem("error", "Erro de conexão ao registrar retirada.");
+        }
+    }
+
+    // --- FUNÇÃO DE MENSAGENS ---
+    function exibirMensagem(tipo, texto) {
+        const msgBox = document.getElementById('msg-box');
+        msgBox.className = `msg-box msg-${tipo}`; // msg-success ou msg-error
+        msgBox.innerHTML = texto;
+        mostrarTela('ui-message');
+    }
+</script>
+
+</body>
+</html>
