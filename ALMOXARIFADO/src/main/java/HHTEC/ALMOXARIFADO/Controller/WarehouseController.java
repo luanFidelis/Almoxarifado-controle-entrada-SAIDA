@@ -21,94 +21,111 @@ import HHTEC.ALMOXARIFADO.database.DTO.WarehouseDTO;
 import HHTEC.ALMOXARIFADO.database.model.Warehouse;
 
 
-
-
 @RestController
 @RequestMapping("/v1/Warehouse")
 public class WarehouseController {
- public final WarewouseService warehouseService;
- 
- public WarehouseController (WarewouseService warehouseService){
-  this.warehouseService =  warehouseService; 
- }
+    public final WarewouseService warehouseService;
 
-@GetMapping("/show_list")
-public List<Warehouse> Show_listt(){
+    public WarehouseController(WarewouseService warehouseService) {
+        this.warehouseService = warehouseService;
+    }
 
-    return warehouseService.show_list();
-}
+    // http://localhost:8080/v1/Warehouse/show_list
+    // TIPO: GET
+    // BODY: Não precisa de body
+    @GetMapping("/show_list")
+    public List<Warehouse> Show_listt() {
+        return warehouseService.show_list();
+    }
 
-@PostMapping("/filter")
-public ResponseEntity<?> filter(@RequestBody WarehouseDTO warehouseDTO) {
+    // http://localhost:8080/v1/Warehouse/filter
+    // TIPO: POST
+    // BODY:
+    // {
+    //   "name": "nome do material"
+    // }
+    @PostMapping("/filter")
+    public ResponseEntity<?> filter(@RequestBody WarehouseDTO warehouseDTO) {
+        Optional<Warehouse> product = warehouseService.SearchName(warehouseDTO.getName());
+        return product
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-    Optional<Warehouse> product = warehouseService.SearchName(warehouseDTO.getName());
+    // http://localhost:8080/v1/Warehouse/add_product
+    // TIPO: POST
+    // BODY:
+    // {
+    //   "name": "nome do material",
+    //   "typeofmoviment": "ENTRADA ou SAIDA",
+    //   "status": "STATUS_DO_MATERIAL",
+    //   "imageUrl": "url_da_imagem",
+    //   "qrcode": "texto_do_qrcode"
+    // }
+    @PostMapping("/add_product")
+    public ResponseEntity<Warehouse> add_product(@RequestBody WarehouseDTO warehouseDTO) {
+        Warehouse warehouse = new Warehouse(
+                warehouseDTO.getName(),
+                warehouseDTO.getTypeofmoviment(),
+                warehouseDTO.getStatus(),
+                warehouseDTO.getImageUrl(),
+                warehouseDTO.getQrcode()
+        );
 
-    return product
-        .map(ResponseEntity::ok)
-        .orElse(ResponseEntity.notFound().build());
-}
+        Warehouse rey = warehouseService.addProduct(warehouse);
+        return ResponseEntity.status(201).body(rey);
+    }
 
-   
-@PostMapping("/add_product")
-public ResponseEntity<Warehouse> add_product(@RequestBody WarehouseDTO warehouseDTO) {
+    // http://localhost:8080/v1/Warehouse/delete/1   <-- Coloque o ID na URL
+    // TIPO: DELETE
+    // BODY: Não precisa de body
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> deletar(@PathVariable Long id) {
+        warehouseService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
+    }
 
-    Warehouse warehouse = new Warehouse(
-        warehouseDTO.getName(),
-        warehouseDTO.getTypeofmoviment(),
-        warehouseDTO.getStatus(),
-        warehouseDTO.getImageUrl(),
-        warehouseDTO.getQrcode()
-    );
+    // http://localhost:8080/v1/Warehouse/editar/status
+    // TIPO: POST
+    // BODY:
+    // {
+    //   "id": ?,
+    //   "status": "NOVO_STATUS"
+    // }
+    @PostMapping("/editar/status")
+    public ResponseEntity<Warehouse> editStatus(@RequestBody UpdateDto updateDto) {
+        Optional<Warehouse> editWare = warehouseService.editStatus(updateDto.getId(), updateDto.getStatus());
+        return editWare
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-    Warehouse rey = warehouseService.addProduct(warehouse);
+    // http://localhost:8080/v1/Warehouse/editar/imagem
+    // TIPO: PATCH
+    // BODY:
+    // {
+    //   "id": 1,
+    //   "imageUrl": "nova_url_da_imagem"
+    // }
+    @PatchMapping("/editar/imagem")
+    public ResponseEntity<Warehouse> editImage(@RequestBody WarehouseDTO warehouseDTO) {
+        Optional<Warehouse> resultEdit = warehouseService.editImagem(warehouseDTO.getId(), warehouseDTO.getImageUrl());
+        return resultEdit
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-    return ResponseEntity.status(201).body(rey);
-}
-
-@DeleteMapping("/delete/{id}") 
-public ResponseEntity<Void> deletar(@PathVariable Long id) {
-    
-    
-    warehouseService.deleteProduct(id);
-    
-    
-    return ResponseEntity.noContent().build();
-}
-
-@PostMapping("/editar/status")
-public ResponseEntity<Warehouse> editStatus ( @RequestBody UpdateDto updateDto ){
-
- Optional<Warehouse> editWare = warehouseService.editStatus(updateDto.getId(), updateDto.getStatus());
-
- return editWare
- .map(ResponseEntity ::ok)
- .orElse(ResponseEntity.notFound().build());   
-}
-
-
-
-@PatchMapping("/editar/imagem")
-public ResponseEntity <Warehouse> editImage(@RequestBody WarehouseDTO warehouseDTO){
-
-    Optional<Warehouse> resultEdit = warehouseService.editImagem(warehouseDTO.getId(), warehouseDTO.getImageUrl());
-    return resultEdit
-    .map(ResponseEntity::ok)
-    .orElse(ResponseEntity.notFound().build());
-}
-
-@GetMapping("/qrcode/{id}")
+    // http://localhost:8080/v1/Warehouse/qrcode/1   <-- Coloque o ID na URL
+    // TIPO: GET
+    // BODY: Não precisa de body
+    @GetMapping("/qrcode/{id}")
     public ResponseEntity<Map<String, String>> obterQrCodeDoMaterial(@PathVariable Long id) {
         try {
-            
             String qrCodeBase64 = warehouseService.gerarQRCodePeloId(id);
-            
             Map<String, String> response = new HashMap<>();
             response.put("imagemQrCode", qrCodeBase64);
-            
             return ResponseEntity.ok(response);
-            
         } catch (RuntimeException e) {
-            
             return ResponseEntity.notFound().build();
         }
     }
